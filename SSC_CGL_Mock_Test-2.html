@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSC CGL Mock Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f8; display: flex; flex-direction: column; height: 100vh; }
+        .header { background-color: #2c3e50; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 20px; }
+        .timer { font-size: 18px; font-weight: bold; background: #e74c3c; padding: 5px 10px; border-radius: 5px; }
+        
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+        
+        .left-panel { flex: 3; padding: 20px; overflow-y: auto; background: white; border-right: 2px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; }
+        .question-container { margin-bottom: 20px; }
+        .question-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .option-label { display: block; padding: 10px; margin: 5px 0; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+        .option-label:hover { background: #eef2f5; }
+        .option-label input { margin-right: 10px; }
+        
+        .right-panel { flex: 1; padding: 20px; background: #fff; overflow-y: auto; }
+        .palette-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+        .grid-btn { padding: 10px; border: 1px solid #ccc; border-radius: 5px; background: white; cursor: pointer; font-weight: bold; text-align: center; }
+        .grid-btn.answered { background-color: #2ecc71; color: white; border-color: #27ae60; }
+        .grid-btn.not-answered { background-color: #e74c3c; color: white; border-color: #c0392b; }
+        .grid-btn.active { box-shadow: 0 0 0 3px #3498db; }
+        
+        .bottom-bar { padding: 15px 20px; background: #ecf0f1; border-top: 1px solid #ddd; display: flex; justify-content: space-between; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; font-weight: bold; }
+        .btn-clear { background: #bdc3c7; color: #333; }
+        .btn-prev { background: #3498db; color: white; }
+        .btn-next { background: #2ecc71; color: white; }
+        .btn-submit { background: #9b59b6; color: white; width: 100%; margin-top: 20px; padding: 15px; }
+        
+        .hidden { display: none !important; }
+        .result-screen { text-align: center; padding: 50px; }
+    </style>
+</head>
+<body>
+
+
+    <div class="header" id="header">
+        <h1>SSC CGL PYQ Mock Test</h1>
+        <div class="timer" id="timer">60:00</div>
+    </div>
+
+
+    <div class="main-content" id="test-screen">
+        <div class="left-panel">
+            <div class="question-container">
+                <div class="question-title" id="question-text">Loading question...</div>
+                <div id="options-container">
+                    <!-- Options will be injected here via JavaScript -->
+                </div>
+            </div>
+            
+            <div class="bottom-bar">
+                <button class="btn-clear" onclick="clearResponse()">Clear Response</button>
+                <div>
+                    <button class="btn-prev" onclick="prevQuestion()">&#8592; Previous</button>
+                    <button class="btn-next" onclick="nextQuestion()">Save & Next &#8594;</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <div class="palette-title">Question Palette</div>
+            <div class="grid" id="question-palette">
+                <!-- Palette buttons injected here -->
+            </div>
+            <button class="btn-submit" onclick="submitTest()">Submit Test</button>
+        </div>
+    </div>
+
+
+    <div class="result-screen hidden" id="result-screen">
+        <h1>Test Submitted Successfully!</h1>
+        <h2>Your Score: <span id="score">0</span> / <span id="total-q">0</span></h2>
+        <p>Review your answers below (Feature can be expanded).</p>
+        <button class="btn-next" onclick="location.reload()">Restart Test</button>
+    </div>
+
+
+    <script>
+        // Database of Questions (Cleaned, 4 options each, sorted)
+        const questions = [
+            {
+                id: 1,
+                text: "Q.No: 1 In the following question, select the related word from the given alternatives<br>Liberty : Autonomy :: Equality : ?",
+                options: ["Legitimacy", "Neutrality", "Fairness", "Diversity"]
+            },
+            {
+                id: 2,
+                text: "Q.No: 2 Select the letter-cluster from among the given options that can replace the question mark (?) in the following series.<br>B G L, G L Q, L Q V, Q V A, ?",
+                options: ["ZAS", "OKS", "VAF", "AVG"]
+            },
+            {
+                id: 3,
+                text: "Q.No: 3 Select the letter-cluster from among the given options that can replace the question mark (?) in the following series.<br>DAG, FCI, ?, JGM, LIO",
+                options: ["GDJ", "IFL", "HKE", "HEK"]
+            },
+            {
+                id: 4,
+                text: "Q.No: 4 Which of the following alternatives will replace the question mark?<br>Atom, Molecule, Cell, ?",
+                options: ["Tissue", "Proton", "System", "Gene"]
+            },
+            {
+                id: 5,
+                text: "Q.No: 5 Complete the series: _____, 150, 183, 219, 258",
+                options: ["120", "148", "132", "140"]
+            },
+            {
+                id: 6,
+                text: "Q.No: 6 What will come at the place of question mark? 2, 12, 30, 56, 90, ?",
+                options: ["132", "140", "142", "150"]
+            },
+            {
+                id: 7,
+                text: "Q.No: 7 Read the following statement carefully and identify the conclusion that follows.<br>Statement: Most farmers in the region depend on monsoon rains for irrigation.<br>Conclusions:<br>I. The region does not have proper irrigation infrastructure.<br>II. A weak monsoon may reduce agricultural output.",
+                options: ["Only Conclusion I follows", "Only Conclusion II follows", "Both I and II follow", "Neither I nor II follows"]
+            },
+                        {
+                id: 8,
+                text: "Q.No: 8 Identify the assumptions that must hold for the statement to be valid, then choose the correct option.<br><b>Statement:</b> The discovery of exoplanets in habitable zones around distant stars has provided exciting prospects for the search for extraterrestrial life, yet the vast distances and technological limitations pose significant obstacles to direct exploration.<br><b>Assumptions:</b><br>I. Exoplanets located in habitable zones may have the potential to support life.<br>II. Current technology is insufficient to directly explore exoplanets in habitable zones.<br>III. Direct exploration of exoplanets will be unnecessary if we detect signs of life remotely.",
+                options: ["Only I and II are implicit", "Only II and III are implicit", "Only I is implicit", "All assumptions are implicit"]
+            },
+            {
+                id: 9,
+                text: "Q.No: 9 How many meaningful four-letter English words can be formed using the first, second, third, and sixth letters of the word \"PROVIDE\" (when counted from left to right), using each letter only once in each word?",
+                options: ["One", "Three", "Two", "Five"]
+            },
+            {
+                id: 10,
+                text: "Q.No: 10 Which of the following addresses are identical to each other:<br>1. Rajeev Chauhan 3/5, Lotus Enclave, Kanpur, 208012<br>2. Rajeev Chauhan 3-5, Lotus Enclave, Kanpur, 208012<br>3. Rajeev Chauhan 3-5, Lotus Enclave, Kanpur, 208012<br>4. Rajeev Chauhan 3-5, Lotus Enclave, Kanpur, 208002",
+                options: ["1 and 2", "2 and 3", "2 and 4", "3 and 4"]
+            },
+            {
+                id: 11,
+                text: "Q.No: 11 Each of the letters in the word STAMINA is arranged in alphabetical order. How many letters are there in the English alphabetical series between the letter that is first from the left and the one that is fourth from the right in the new letter-cluster formed?",
+                options: ["11", "12", "13", "14"]
+            },
+            {
+                id: 12,
+                text: "Q.No: 12 Find the best option that best completes the analogy.<br>NPR : OQS :: XYZ : ?",
+                options: ["YZA", "ZAB", "YAC", "YAZ"]
+            },
+            {
+                id: 13,
+                text: "Q.No: 13 In a row of 50 books, Book A is 15th from left and Book B is 20th from right. How many books lie between them?",
+                options: ["17", "15", "12", "10"]
+            },
+            {
+                id: 14,
+                text: "Q.No: 14 In each of the following questions, the second word is formed by rearranging the letters of the first word according to a specific pattern. Identify that pattern and apply the same to the third word to find the correct answer from the given alternatives.<br>NUMERAL : UEALRMN :: ALGEBRA : ?",
+                options: ["LRBAGEA", "BARLAGE", "LERAGBA", "LERABGA"]
+            },
+            {
+                id: 15,
+                text: "Q.No: 15 Find the odd one out from the given alternatives:",
+                options: ["TDS", "GST", "VAT", "DNA"]
+            },
+            {
+                id: 16,
+                text: "Q.No: 16 If A is the son of B, and B is the brother of C, how is C related to A?",
+                options: ["Father", "Uncle", "Brother", "Cousin"]
+            },
+            {
+                id: 17,
+                text: "Q.No: 17 One number is not like the others: 1331, 2197, 3375, 4096",
+                options: ["1331", "3375", "4096", "2197"]
+            },
+            {
+                id: 18,
+                text: "Q.No: 18 Find the number that breaks the pattern: 2, 5, 10, 17, 28, 40, 58",
+                options: ["10", "17", "40", "28"]
+            },
+            {
+                id: 19,
+                text: "Q.No: 19 In a certain code language, each letter is assigned a unique digit. Based on the given codes for specific words, determine the code for the target word using the same logic. If MOUSE is coded as 45291 and RAT as 786, how is STORE coded?",
+                options: ["96571", "97653", "98345", "96278"]
+            },
+            {
+                id: 20,
+                text: "Q.No: 20 If 7 $ 3 = 58 and 6 $ 2 = 40, what is 5 $ 1?",
+                options: ["26", "24", "28", "22"]
+            },
+            {
+                id: 21,
+                text: "Q.No: 21 Pointing to a girl, a woman says, 'She is the daughter of my mother's only daughter.' How is the girl related to the woman?",
+                options: ["Daughter", "Daughter-in-law", "Cousin", "Sister"]
+            },
+            {
+                id: 22,
+                text: "Q.No: 22 A woman says, \"This man's son's sister is my daughter.\" How is the woman related to the man?",
+                options: ["Wife", "Sister", "Mother", "Daughter-in-law"]
+            },
+            {
+                id: 23,
+                text: "Q.No: 23 Two numbers are in ratio 7:9, and their sum is 128. Find the numbers.",
+                options: ["49, 79", "56, 72", "62, 66", "70, 58"]
+            },
+            {
+                id: 24,
+                text: "Q.No: 24 If 16+11=A and 1/9=B, and A % B=(A×B)-1, then what is A % B?",
+                options: ["0", "-3", "2", "5"]
+            },
+            {
+                id: 25,
+                text: "Q.No: 25 If the sum of 28 and 22 is multiplied by 8, what is the result?",
+                options: ["384", "400", "415", "416"]
+            },
+            {
+                id: 26,
+                text: "Q.No: 26 Read the below statements marked as Assertion (A) and Reason (R). Mark the correct options:<br><b>Assertion (A):</b> Humayun's Tomb was the first major Mughal garden tomb and directly inspired the design of the Taj Mahal.<br><b>Reason (R):</b> It introduced the charbagh garden layout and double-domed mausoleum style that became characteristic of later Mughal architecture.",
+                options: ["Both A and R are true, and R is the correct explanation of A.", "Both A and R are true, but R is not the correct explanation of A.", "A is true, but R is false.", "A is false, but R is true."]
+            },
+            {
+                id: 27,
+                text: "Q.No: 27 Which ancient ruler's administration is noted for its highly centralized structure?",
+                options: ["Harshavardhana", "Samudragupta", "Chandragupta Maurya", "Pulakeshin II"]
+            },
+            {
+                id: 28,
+                text: "Q.No: 28 Which of the following correctly reflects the evolution of Indian classical music?",
+                options: ["Jatis evolved from ragas as per ancient texts", "72-mela system was given by Bharata in 13th century", "Folk music originally used mela and grama scales", "Ragas evolved from jatis; 72-mela was by Venkatamakhi"]
+            },
+            {
+                id: 29,
+                text: "Q.No: 29 Consider the following statements about the phases of long jump:<br>1) The athlete attains maximum momentum by running on the runway before take-off.<br>2) During take-off, the athlete pushes off with the weaker foot to maintain balance.<br>Which of the statements given above are correct?",
+                options: ["Only 1 is Correct", "Only 2 is Correct", "1 and 2 are correct", "Neither 1 nor 2 are Correct"]
+            },
+            {
+                id: 30,
+                text: "Q.No: 30 Mary Kom's most recent international gold medal was won at which tournament?",
+                options: ["Asian Games, Hangzhou", "President's Cup, Indonesia", "Commonwealth Games, Birmingham", "Olympic Games, Tokyo"]
+            },
+                        {
+                id: 31,
+                text: "Q.No: 31 The Regulating Act of 1773 primarily introduced changes in the Company's administration in which two distinct areas?",
+                options: ["Company's Judicial system and revenue collection.", "Company's Military strategy and trade regulations.", "Company's constitution at home and territorial control in India.", "Company's relations with princely states and foreign policy."]
+            },
+            {
+                id: 32,
+                text: "Q.No: 32 Consider the following statements regarding India’s water-sharing treaties with its neighbours:<br>1) The Mahakali Treaty signed with Nepal in 1996 includes provisions for integrated development of the Mahakali River and the Pancheshwar Project.<br>2) The Ganga Water Treaty signed with Bangladesh in 1996 allows for the sharing of Ganga waters at Farakka throughout the entire year.<br>Which of the statements above is/are correct?",
+                options: ["Only 1 is Correct", "Only 2 is Correct", "Both 1 and 2 are Correct", "Neither 1 nor 2 are Correct"]
+            },
+            {
+                id: 33,
+                text: "Q.No: 33 Fill in the blank:<br>Under the SLKIC vertical of Khelo India, ____ Kendriya Vidyalayas have been adopted in partnership with KVS.",
+                options: ["3", "4", "5", "6"]
+            },
+            {
+                id: 34,
+                text: "Q.No: 34 Consider the following statements about \"The Adventures of Kakababu, Volume 1\" by Sunil Gangopadhyaya:<br>1) A pioneering Bengali adventure novel featuring detective Kakababu with mystery and cultural themes.<br>2) A political satire on post-independence Indian governance.<br>3) An autobiography of the author's freedom fighter experiences in Bengal.<br>Which of the above statements is/are correct?",
+                options: ["Only statement 1 is correct", "Only statement 2 is correct", "Statements 2 and 3 are correct", "1, 2 and 3 are correct"]
+            },
+            {
+                id: 35,
+                text: "Q.No: 35 Which indian political leader addressed a special session in 2025 on \"Environment, COP-30, and Global Health\"?",
+                options: ["Piyush Goyal", "Hardeep Puri", "Narendra Modi", "S. Jaishankar"]
+            },
+            {
+                id: 36,
+                text: "Q.No: 36 Which of the following types of landslides involves backward rotation of the slipping material?",
+                options: ["Rockslide", "Rock fall", "Slump", "Debris fall"]
+            },
+            {
+                id: 37,
+                text: "Q.No: 37 What is meant by population density?",
+                options: ["Population per household", "People per square kilometre", "People per region", "People per district"]
+            },
+            {
+                id: 38,
+                text: "Q.No: 38 Assertion (A) and Reason (R) are given below. Choose the correct option:<br><b>Assertion (A):</b> Population explosion occurs when death rates decline rapidly but birth rates remain high.<br><b>Reason (R):</b> Societal reproductive behavior changes instantly with improvements in healthcare.",
+                options: ["Both A and R are true, and R is the correct explanation of A", "Both A and R are true, but R is not the correct explanation", "A is true, but R is false", "A is false, but R is true"]
+            },
+            {
+                id: 39,
+                text: "Q.No: 39 Which of the following best reflects the fundamental objective of applying generative design in aerospace systems engineering?",
+                options: ["Facilitating seamless integration of multi-payload platforms in shared bus structures", "Optimizing mechanical configurations for minimum mass and maximum structural resilience", "Enhancing life-support redundancies to meet crew safety protocols in deep-space missions", "Designing adaptive thrust mechanisms to dynamically control orbital corrections"]
+            },
+            {
+                id: 40,
+                text: "Q.No: 40 The function of lysosomes in cells is:",
+                options: ["Protein synthesis", "Intracellular digestion", "Energy production", "Genetic information storage"]
+            },
+            {
+                id: 41,
+                text: "Q.No: 41 Which of the following statements regarding Article 270 are correct?<br>1) Article 270 governs the sharing of taxes between the Union and States, including proceeds from GST.<br>2) After the 101st Constitutional Amendment, Article 270 includes provisions for distributing revenue from Union taxes and GST.<br>3) The GST Compensation Cess is also shared between the Union and States under Article 270.",
+                options: ["1 and 3 only", "1 Only", "1 & 2 only", "2 & 3 only"]
+            },
+            {
+                id: 42,
+                text: "Q.No: 42 If Earth's radius were reduced by 1% while its mass remained unchanged, what would be the effect on the gravitational acceleration at its surface?",
+                options: ["Increase by approximately 1%", "Decrease by approximately 2%", "Increase by approximately 2%", "Decrease by approximately 1%"]
+            },
+            {
+                id: 43,
+                text: "Q.No: 43 Under Bharatiya Nagarik Suraksha Sanhita(BNSS), what is the maximum period for which a person can be held in police custody in total, even if remanded periodically by a magistrate?",
+                options: ["30 days", "60 days", "90 days", "15 days (for initial remand, extendable)"]
+            },
+            {
+                id: 44,
+                text: "Q.No: 44 What is the age range for farmers to enrol in the Pradhan Mantri Kisan Maandhan Yojana (PM-KMY)?",
+                options: ["18–30 years", "18–40 years", "21–45 years", "25–50 years"]
+            },
+            {
+                id: 45,
+                text: "Q.No: 45 Read the below statements marked as Assertion (A) and Reason (R). Mark the correct options:<br><b>Assertion (A):</b> UDAN Scheme improves regional air connectivity.<br><b>Reason (R):</b> It provides financial viability gap funding to airlines.",
+                options: ["Both A and R are true, and R is the correct explanation of A", "Both A and R are true, but R is not the correct explanation of A", "A is true, but R is false", "A is false, but R is true"]
+            },
+            {
+                id: 46,
+                text: "Q.No: 46 According to the Global Cities Index 2025 by Oxford Economics, which two cities retained their top positions?",
+                options: ["Tokyo and Beijing", "London and New York", "Paris and Rome", "Berlin and Moscow"]
+            },
+            {
+                id: 47,
+                text: "Q.No: 47 Which of the following statements about light industries is correct?",
+                options: ["They process heavy ores and minerals.", "They produce large-scale industrial machinery.", "They require bulky and heavy raw materials.", "Use light materials to make consumer goods"]
+            },
+            {
+                id: 48,
+                text: "Q.No: 48 Schedule VII of the Constitution contains ____.",
+                options: ["Election guidelines", "Three legislative lists", "Emergency powers", "Judicial provisions"]
+            },
+            {
+                id: 49,
+                text: "Q.No: 49 A coastal city implements a plan to build sea walls and elevate buildings in response to rising sea levels. This action primarily falls under which category of climate change response?",
+                options: ["Climate Change Mitigation.", "Carbon Sequestration.", "Geoengineering.", "Climate Change Adaptation."]
+            },
+            {
+                id: 50,
+                text: "Q.No: 50 What specific physical quantity ensures a satellite maintains its orbit without continuous propulsion?",
+                options: ["Mass", "Gravitational pull", "Orbital velocity", "Atmospheric drag"]
+            },
+            {
+                id: 51,
+                text: "Q.No: 51 Let x = √3 + √5 and y = √8 + √2. Which is greater?",
+                options: ["x=y", "x>y", "x<y", "Cannot be determined"]
+            },
+            {
+                id: 52,
+                text: "Q.No: 52 The number of red, blue, and green marbles in a bag is in the ratio 3 : 4 : 6. If 20 red marbles, 15 blue marbles, and an unknown number of green marbles are added to the bag, the ratio of red, blue, and green marbles becomes 4 : 5 : 7. Determine the number of green marbles added.",
+                options: ["3", "5", "7", "9"]
+            },
+            {
+                id: 53,
+                text: "Q.No: 53 Evaluate the continued fraction: x = 2 + 1 / (3 + 1 / (4 + 1/2))",
+                options: ["67/29", "41/17", "45/19", "47/20"]
+            },
+            {
+                id: 54,
+                text: "Q.No: 54 A and B invest ₹40,000 and ₹60,000 respectively in a business. What is A's share in a profit of ₹50,000?",
+                options: ["₹15,000", "₹20,000", "₹25,000", "₹30,000"]
+            },
+            {
+                id: 55,
+                text: "Q.No: 55 A and B contribute to a business investment in the ratio 3:5. They earn a profit of ₹64,000. A is a working partner and receives 10% of the profit extra. What is A’s total share?",
+                options: ["₹26,500", "₹28,000", "₹38,500", "₹36,000"]
+            },
+            {
+                id: 56,
+                text: "Q.No: 56 In a team of 75 employees, the average monthly sales per employee is ₹ 1.8 lakh. If 30 junior employees average ₹ 1.2 lakh each, what is the average monthly sales figure (in ₹ lakh) for the senior employees?",
+                options: ["₹4.2 lakh", "₹2.2 lakh", "₹2.8 lakh", "₹2.7 lakh"]
+            },
+            {
+                id: 57,
+                text: "Q.No: 57 The price of petrol shot up by 5%. Before the hike, the price was Rs. 82 per litre. A man travels 3045 km every month and his car gives a mileage of 15 km per litre. What is the increase in the monthly expenditure (to the nearest Rs.) on the man's travel due to the hike in the petrol prices?",
+                options: ["₹820", "₹832", "₹845", "₹850"]
+            },
+            {
+                id: 58,
+                text: "Q.No: 58 A company placed an order for 20 high-end laptops and some quantity of standard desktops. The price of a high-end laptop was 5 times that of a standard desktop. Due to a mistake, the number of laptops and desktops was interchanged in the delivery. This caused the total bill to increase by 80%. What was the ratio of the number of high-end laptops to standard desktops in the original order?",
+                options: ["1:2", "2:1", "5:2", "2:5"]
+            },
+            {
+                id: 59,
+                text: "Q.No: 59 Find the compound interest on ₹8,000 at 12% per annum for 3 years 4 months, compounded annually.",
+                options: ["₹3,000", "₹4,000", "₹3,689", "₹3,600"]
+            },
+            {
+                id: 60,
+                text: "Q.No: 60 A candy shop owner buys three kinds of candies: red, blue, and green. Red candies are purchased at 3 for ₹15, blue candies at 4 for ₹18, and green candies at 5 for ₹22. He mixes them in the ratio 1 : 1 : 2. He sells all the mixed candies at 2 for ₹10. What is his approximate gain or loss percentage?",
+                options: ["Loss of 9.2%", "Profit of 9.29%", "Profit of 10%", "Loss of 10%"]
+            },
+            {
+                id: 61,
+                text: "Q.No: 61 The ratio of boys to girls in a school is 7:5. If 20 more girls join the school, the new ratio of boys to girls becomes 7:6. What is the total number of students in the school initially?",
+                options: ["200", "240", "300", "360"]
+            },
+            {
+                id: 62,
+                text: "Q.No: 62 A, B, and C are capable of completing a job in 30, 45, and 90 days, respectively. A works every day, while B and C join A every fifth day. How long will it take to finish the task?",
+                options: ["25 days", "18 days", "16 days", "12 days"]
+            },
+            {
+                id: 63,
+                text: "Q.No: 63 A 100-litre solution contains acid and water in the ratio 3:2. Some quantity of this solution is removed and replaced with pure acid. If the final ratio of acid to water becomes 7:3, how many litres of solution were replaced?",
+                options: ["35 litres", "25 litres", "50 litres", "20 litres"]
+            },
+            {
+                id: 64,
+                text: "Q.No: 64 The ratio of the efficiencies of two workers, P and Q, is 5 : 2. If P can complete a project in 12 days, how many days will Q take to complete the same project alone?",
+                options: ["24 days", "30 days", "35 days", "40 days"]
+            },
+            {
+                id: 65,
+                text: "Q.No: 65 A car starts from point P on a circular track and an SUV starts from point Q, which is 600 meters ahead of P in the direction of motion. The car's speed is 15 m/s, and the SUV's speed is 10 m/s. The circumference of the track is 1.5 km. How much distance will the car have traveled when it first overtakes the SUV?",
+                options: ["900 m", "1200 m", "1500 m", "1800 m"]
+            },
+                         {
+                id: 66,
+                text: "Q.No: 66 A circular park having a radius of 14 m. If a 1.5 m wide path is built around it, what is the approximate area of the path?",
+                options: ["139 m²", "135 m²", "142 m²", "150 m²"]
+            },
+            {
+                id: 67,
+                text: "Q.No: 67 What is 5π/4 radians in degrees?",
+                options: ["225°", "180°", "240°", "360°"]
+            },
+            {
+                id: 68,
+                text: "Q.No: 68 The line y = -x + 4 passes through which of the following points?",
+                options: ["(2, 2)", "(5, 4)", "(1, 2)", "(3, 6)"]
+            },
+            {
+                id: 69,
+                text: "Q.No: 69 What is the central angle of a sector with an arc length of 10 cm in a circle of radius 5 cm?",
+                options: ["6 radians", "3 radians", "2 radians", "4 radians"]
+            },
+            {
+                id: 70,
+                text: "Q.No: 70 If tan(90° - A) = √3, what is sin A?",
+                options: ["1/2", "√3/2", "√2/2", "3/4"]
+            },
+            {
+                id: 71,
+                text: "Q.No: 71 If x = √7, determine the value of x + 1/x.",
+                options: ["8√7/7", "7√7/8", "7√7/9", "9√7/7"]
+            },
+            {
+                id: 72,
+                text: "Q.No: 72 Two triangles are similar with sides in the ratio 3:5. What is the ratio of their areas?",
+                options: ["3:5", "5:3", "9:25", "25:9"]
+            },
+            {
+                id: 73,
+                text: "Q.No: 73 If x = √((2+√3)/(2-√3)), then determine the value of x² + x - 9?",
+                options: ["3√3", "5√3", "7√3", "9√3"]
+            },
+            {
+                id: 74,
+                text: "Q.No: 74 The angles of a cyclic quadrilateral are in the ratio 1:2:3:4. What is the measure of the smallest angle?",
+                options: ["36°", "72°", "108°", "144°"]
+            },
+            {
+                id: 75,
+                text: "Q.No: 75 If secA = 13/5 and A is acute, find sinA.",
+                options: ["5/13", "12/13", "13/12", "13/5"]
+            },
+            {
+                id: 76,
+                text: "Q.No: 76 Select the most appropriate synonym of the given word: ABNEGATE",
+                options: ["Demand", "Accept", "Renounce", "Support"]
+            },
+            {
+                id: 77,
+                text: "Q.No: 77 Choose the correct meaning of idiom: Move heaven and earth",
+                options: ["To relocate frequently", "To work tirelessly to achieve something", "To stay silent in protest", "To follow blindly"]
+            },
+            {
+                id: 78,
+                text: "Q.No: 78 Select the most appropriate antonym of the given word. Puissant",
+                options: ["Feeble", "Robust", "Powerful", "Strong"]
+            },
+            {
+                id: 79,
+                text: "Q.No: 79 Identify the misspelt word",
+                options: ["Supersede", "Perseverance", "Priviledge", "Assassinate"]
+            },
+            {
+                id: 80,
+                text: "Q.No: 80 Spot the correct spelling of a drug-effect psychology field.",
+                options: ["Psychopharmacology", "Psychopharmacholog", "Psychopharmeocology", "Psychopharmocology"]
+            },
+            {
+                id: 81,
+                text: "Q.No: 81 Choose the correct one-word substitute for: 'A person who abstains from all forms of indulgence'.",
+                options: ["Ascetic", "Agnostic", "Mystic", "Skeptic"]
+            },
+            {
+                id: 82,
+                text: "Q.No: 82 Select the correct option:<br>Neither the principal investigator ___ the co-authors anticipated the backlash.",
+                options: ["nor", "or", "and", "nor did"]
+            },
+            {
+                id: 83,
+                text: "Q.No: 83 Select the correct option:<br>The board will convene next Friday, ___ final approval is expected.",
+                options: ["at which", "on which", "when", "whereupon"]
+            },
+            {
+                id: 84,
+                text: "Q.No: 84 Select the correct option:<br>Nothing short of a paradigm shift will ___ the entrenched bureaucratic inertia.",
+                options: ["persuade", "dislodge", "dissuasion", "disillusion"]
+            },
+            {
+                id: 85,
+                text: "Q.No: 85 Find the part of the sentence that contains an error:<br>Much of what appears to be coordination (1)/ among the regulatory bodies and private stakeholders (2)/ are, in fact, coincidental overlaps (3)/ caused by differing mandates. (4)",
+                options: ["(1)", "(2)", "(3)", "(4)"]
+            },
+            {
+                id: 86,
+                text: "Q.No: 86 Find the part of the sentence that contains an error:<br>That the framework lacks provisions for backward compatibility (1)/ is less problematic than the assumption (2)/ that all peripheral institutions will, without coercion, (3)/ adheres to the central directive as framed. (4)",
+                options: ["(1)", "(2)", "(3)", "(4)"]
+            },
+            {
+                id: 87,
+                text: "Q.No: 87 Change the following from active to passive:<br>People can seldom access archived manuscripts without clearance.",
+                options: ["Archived manuscripts can seldom being accessed without clearance.", "Archived manuscripts could seldom be accessed without clearance.", "Archived manuscripts can seldom be accessed without clearance.", "Archived manuscripts are seldom able to be accessed without clearance."]
+            },
+            {
+                id: 88,
+                text: "Q.No: 88 Select the sentence containing the homonym of the highlighted word:<br>The prince's <b>gules</b> dominated the family coat of arms.",
+                options: ["The tapestry featured gules and argent prominently.", "The chef prepared a sauce of deep gules and cumin.", "The gules border signified martial lineage.", "The herald explained the symbolism of gules to visitors."]
+            },
+            {
+                id: 89,
+                text: "Q.No: 89 Convert the sentence provided below from its passive voice structure to an active voice structure:<br>The package is delivered to the office every morning.",
+                options: ["The office delivers the package every morning.", "Someone delivers the package to the office every morning.", "The office has delivered the package every morning.", "The package delivers itself to the office every morning."]
+            },
+            {
+                id: 90,
+                text: "Q.No: 90 Read the following passage and answer the questions based on the passage :<br>The proliferation of social media has fundamentally transformed the democratic landscape, acting both as a catalyst for civic engagement and a conduit for manipulation... <br><br>What primary democratic function does social media serve, as per the paragraph?",
+                options: ["Promoting entertainment", "Replacing newspapers", "Facilitating free flow of information", "Organizing trade unions"]
+            },
+            {
+                id: 91,
+                text: "Q.No: 91 Read the following passage and answer the questions based on the passage :<br>...However, this unprecedented openness is double-edged. The same platforms that disseminate truth can also propagate misinformation...<br><br>What makes social media a double-edged tool in democratic societies?",
+                options: ["Its affordability", "Its visual design", "Its ability to spread both truth and misinformation", "Its international reach"]
+            },
+            {
+                id: 92,
+                text: "Q.No: 92 Read the following passage and answer the questions based on the passage :<br>...Political leaders communicate directly with constituents, bypassing editorial filters, while grassroots movements harness virality to amplify marginalized voices...<br><br>According to the paragraph, which element amplifies marginalized voices through social media?",
+                options: ["Editorial boards", "Gatekeeping journalism", "Viral reach and grassroots mobilization", "Institutional press"]
+            },
+            {
+                id: 93,
+                text: "Q.No: 93 Read the following passage and answer the questions based on the passage :<br>...Regulatory oversight, media literacy, and algorithmic transparency are essential to harness its democratic potential while mitigating its subversive tendencies...<br><br>What does the author suggest as a critical solution to social media misuse in democracies?",
+                options: ["Enhanced meme culture", "Legalizing all content", "Algorithmic transparency and media literacy", "Global censorship policies"]
+            },
+            {
+                id: 94,
+                text: "Q.No: 94 Read the following passage and answer the questions based on the passage :<br>...In essence, social media is neither inherently virtuous nor inherently corrosive—it is a mirror of societal intent...<br><br>In the author's view, what determines whether social media supports or undermines democracy?",
+                options: ["Political advertisements", "How platforms are funded", "Societal intent and ethical usage", "Popularity of influencers"]
+            },
+            {
+                id: 95,
+                text: "Q.No: 95 Choose the most suitable option to replace the highlighted part of the sentence:<br>No sooner had I reached the station <b>when the train departed.</b>",
+                options: ["than the train departed", "then the train departed", "when the train had departed", "than did the train depart"]
+            },
+            {
+                id: 96,
+                text: "Q.No: 96 Choose the most suitable option to replace the highlighted part of the sentence:<br>The manager <b>asked to the clerk to submit the report.</b>",
+                options: ["asked the clerk that submit the report", "requested the clerk to submit report", "asked the clerk to submit the report", "told to the clerk submit report"]
+            },
+            {
+                id: 97,
+                text: "Q.No: 97 A sentence is provided in direct speech. From the four given options, choose the one that most accurately conveys the sentence in its corresponding indirect speech.<br>She said, \"I saw him last night.\"",
+                options: ["She said she had seen him the previous night.", "She said she has seen him last night.", "She said she was seeing him last night.", "She said she had saw him the previous night."]
+            },
+            {
+                id: 98,
+                text: "Q.No: 98 A sentence is provided in indirect speech. From the four given options, choose the one that most accurately conveys the sentence in its corresponding direct speech.<br>The librarian said that silence must be maintained in the library.",
+                options: [
+                    "\"Silence should be maintained in the library,\" said the librarian.",
+                    "\"You will maintain silence in the library,\" the librarian said.",
+                    "\"Maintain silence in the library,\" said the librarian.",
+                    "\"Must you maintain silence in the library?\" asked the librarian."
+                ]
+            },
+            {
+                id: 99,
+                text: "Q.No: 99 Rearrange the following sentences to form a coherent paragraph:<br>1. Consequently, effective communication hinges on more than just the words we choose. 2. Non-verbal cues, such as tone of voice, facial expressions, and body language, can convey more meaning than the verbal message itself. 3. Communication is a complex process involving the exchange of information, ideas, and feelings between individuals. 4. It's often the subtle signals that tell us how a message is truly being received or intended.",
+                options: ["3, 2, 1, 4", "2, 4, 1, 3", "1, 4, 3, 2", "3, 4, 2, 1"]
+            },
+            {
+                id: 100,
+                text: "Q.No: 100 Rearrange the following sentences to form a coherent paragraph:<br>1. A key strategy is to diversify energy sources, transitioning from fossil fuels to renewable alternatives like solar, wind, and geothermal power.<br>2. To mitigate the worst effects of climate change, the global community must drastically reduce its reliance on carbon-intensive energy production.<br>3. This shift not only decreases greenhouse gas emissions but also improves air quality and creates new economic opportunities.<br>4. Additionally, policies that promote energy efficiency in buildings and transportation can further lower overall energy consumption.",
+                options: ["2, 1, 3, 4", "1, 2, 3, 4", "4, 1, 2, 3", "2, 3, 1, 4"]
+            }
+        ];
+
+
+        let currentIndex = 0;
+        const answers = new Array(questions.length).fill(null);
+        const visited = new Array(questions.length).fill(false);
+
+
+        // Timer Logic (60 Minutes)
+        let timeRemaining = 3600; 
+        const timerElement = document.getElementById("timer");
+        
+        const timerInterval = setInterval(() => {
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                submitTest();
+            } else {
+                let minutes = Math.floor(timeRemaining / 60);
+                let seconds = timeRemaining % 60;
+                timerElement.innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                timeRemaining--;
+            }
+        }, 1000);
+
+
+        function init() {
+            buildPalette();
+            loadQuestion(0);
+        }
+
+
+        function buildPalette() {
+            const palette = document.getElementById("question-palette");
+            palette.innerHTML = '';
+            questions.forEach((q, index) => {
+                const btn = document.createElement("div");
+                btn.className = "grid-btn";
+                btn.innerText = index + 1;
+                btn.onclick = () => loadQuestion(index);
+                btn.id = `pal-btn-${index}`;
+                palette.appendChild(btn);
+            });
+        }
+
+
+        function updatePaletteUI() {
+            questions.forEach((_, index) => {
+                const btn = document.getElementById(`pal-btn-${index}`);
+                btn.classList.remove('active', 'answered', 'not-answered');
+                
+                if (index === currentIndex) {
+                    btn.classList.add('active');
+                }
+                
+                if (answers[index] !== null) {
+                    btn.classList.add('answered');
+                } else if (visited[index]) {
+                    btn.classList.add('not-answered');
+                }
+            });
+        }
+
+
+        function loadQuestion(index) {
+            currentIndex = index;
+            visited[index] = true;
+            
+            const q = questions[index];
+            document.getElementById("question-text").innerHTML = q.text;
+            
+            const optionsContainer = document.getElementById("options-container");
+            optionsContainer.innerHTML = '';
+            
+            q.options.forEach((opt, i) => {
+                const label = document.createElement("label");
+                label.className = "option-label";
+                
+                const input = document.createElement("input");
+                input.type = "radio";
+                input.name = "option";
+                input.value = i;
+                if (answers[index] === i) input.checked = true;
+                
+                input.onchange = () => { answers[index] = i; };
+                
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(opt));
+                optionsContainer.appendChild(label);
+            });
+            
+            updatePaletteUI();
+        }
+
+
+        function nextQuestion() {
+            if (currentIndex < questions.length - 1) {
+                loadQuestion(currentIndex + 1);
+            }
+        }
+
+
+        function prevQuestion() {
+            if (currentIndex > 0) {
+                loadQuestion(currentIndex - 1);
+            }
+        }
+
+
+        function clearResponse() {
+            answers[currentIndex] = null;
+            loadQuestion(currentIndex); // Reload to clear radio button
+        }
+
+
+        function submitTest() {
+            clearInterval(timerInterval);
+            document.getElementById("header").classList.add("hidden");
+            document.getElementById("test-screen").classList.add("hidden");
+            document.getElementById("result-screen").classList.remove("hidden");
+            
+            // Calculate attempted questions
+            const attempted = answers.filter(a => a !== null).length;
+            document.getElementById("score").innerText = attempted; 
+            document.getElementById("total-q").innerText = questions.length;
+        }
+
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
